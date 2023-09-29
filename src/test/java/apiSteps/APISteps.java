@@ -4,11 +4,14 @@ import io.restassured.response.ValidatableResponse;
 import models.AuthRequestModel;
 import models.RegistrationRequestModel;
 
+import static helpers.CustomApiListener.withCustomTemplates;
 import static io.restassured.RestAssured.given;
 import static specs.AuthSpec.authRequestSpec;
 import static specs.AuthSpec.authResponseSpec;
 import static specs.DeleteAccountSpec.deleteAccountRequestSpec;
 import static specs.DeleteAccountSpec.deleteAccountResponseSpec;
+import static specs.OpenBookListSpec.openBookListRequestSpec;
+import static specs.OpenBookListSpec.openBookListResponseSpec;
 import static specs.RegistrationSpec.registrationRequestSpec;
 import static specs.RegistrationSpec.registrationResponseSpec;
 
@@ -21,6 +24,7 @@ public class APISteps {
         registrationRequestBody.setPassword(password);
 
         return given()
+                .filter(withCustomTemplates())
                 .spec(registrationRequestSpec)
                 .body(registrationRequestBody)
                 .when()
@@ -37,6 +41,7 @@ public class APISteps {
         authRequestBody.setPassword(password);
 
         return given()
+                .filter(withCustomTemplates())
                 .spec(authRequestSpec)
                 .body(authRequestBody)
                 .when()
@@ -49,6 +54,7 @@ public class APISteps {
     public ValidatableResponse deleteAccount(String userID, String token) {
 
         return given()
+                .filter(withCustomTemplates())
                 .spec(deleteAccountRequestSpec)
                 .pathParam("userID", userID)
                 .header("Authorization", "Bearer " + token)
@@ -56,6 +62,18 @@ public class APISteps {
                 .delete()
                 .then()
                 .spec(deleteAccountResponseSpec);
+
+    }
+
+    public ValidatableResponse openBookList() {
+
+        return given()
+                .filter(withCustomTemplates())
+                .spec(openBookListRequestSpec)
+                .when()
+                .get()
+                .then()
+                .spec(openBookListResponseSpec);
 
     }
 
