@@ -1,0 +1,44 @@
+plugins {
+    id 'java'
+    id 'io.qameta.allure' version '2.11.2'
+    id "io.freefair.lombok" version "6.5.1"
+}
+
+group 'mailru.nastasia-chernega'
+
+repositories {
+    mavenCentral()
+}
+
+def allureVersion = "2.22.1"
+
+allure {
+    report {
+        version.set(allureVersion)
+    }
+    adapter { // отвечает за появление папочки build/allure-results
+        aspectjWeaver.set(true) //обработка аннотации @Step
+        frameworks {
+            junit5 { //название фреймворка
+                adapterVersion.set(allureVersion) //версия интеграции фреймворка и Allure
+            }
+        }
+    }
+}
+
+dependencies {
+    testImplementation(
+            'io.rest-assured:rest-assured:5.3.0',
+            "io.qameta.allure:allure-rest-assured:$allureVersion",
+            'org.junit.jupiter:junit-jupiter:5.9.2',
+            'org.aeonbits.owner:owner:1.0.12',
+            'com.fasterxml.jackson.core:jackson-databind:2.15.1',
+            'com.fasterxml.jackson.core:jackson-annotations:2.15.1',
+            'org.assertj:assertj-core:3.24.2'
+    )
+
+}
+
+test {
+    useJUnitPlatform()
+}
