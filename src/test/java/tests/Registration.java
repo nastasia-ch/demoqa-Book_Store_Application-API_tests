@@ -1,99 +1,64 @@
 package tests;
 
-import models.RegistrationModel;
+import apiSteps.APISteps;
+import models.RegistrationResponseModel;
 import org.junit.jupiter.api.Test;
+import tests.testData.TestDataExistedUser;
+import tests.testData.TestDataNewUser;
 
-import static io.restassured.RestAssured.given;
-import static io.restassured.filter.log.LogDetail.*;
-import static io.restassured.http.ContentType.JSON;
+import static io.qameta.allure.Allure.step;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static specs.RegistrationSpec.registrationRequestSpec;
-import static specs.RegistrationSpec.registrationResponseSpec;
 
 public class Registration {
+
+    APISteps apiSteps = new APISteps();
+    TestDataNewUser newUser = new TestDataNewUser();
+    TestDataExistedUser existedUser = new TestDataExistedUser();
 
     @Test
     void registrationExistedUser() {
 
-        RegistrationModel requestBody = new RegistrationModel();
-        requestBody.setUserName("Qwer0987!");
-        requestBody.setPassword("Qwer0987!");
-
-        given()
-                .spec(registrationRequestSpec)
-                .body(requestBody)
-        .when()
-                .post()
-        .then()
-                .spec(registrationResponseSpec)
-                .statusCode(406)
-                .body("code",is("1204"))
-                .body("message",is("User exists!"));
+        step("Выполняем api-запрос на " +
+                "создание нового пользователя с существующим userName", () ->
+                apiSteps
+                        .registration(existedUser.userName,existedUser.password)
+                        .statusCode(406)
+                        .body("code", is("1204"))
+                        .body("message", is("User exists!")));
     }
 
     @Test
     void registrationNewUser() {
 
-        RegistrationModel requestBody = new RegistrationModel();
-        requestBody.setUserName("Zxcv1234!");
-        requestBody.setPassword("Zxcv1234!");
+        RegistrationResponseModel response = step("Выполняем api-запрос на " +
+                "создание нового пользователя с несуществующим userName", () ->
+                apiSteps
+                        .registration(newUser.userName, newUser.password)
+                        .statusCode(201)
+                        .extract().response().as(RegistrationResponseModel.class));
 
-        given()
-                .spec(registrationRequestSpec)
-                .body(requestBody)
-        .when()
-                .post()
-        .then()
-                .spec(registrationResponseSpec)
-                .statusCode(201)
-                .body("username",is("Zxcv1234!"));
+        try {
+            step("Проверяем корректность данных в ответе", () -> {
+                assertThat(response.getUsername()).isEqualTo(newUser.userName);
+                assertThat(response.getUserID()).isNotNull();
+            });
+        }
 
+        finally {
+            step("Ощищаем данные после теста: выполняем api-запрос на " +
+                    "удаление созданного пользователя", () -> {
+                String userID = response.getUserID();
 
-        String token = given()
-                .contentType(JSON)
-                .log().method()
-                .log().uri()
-                .log().body()
-                .body(requestBody)
-        .when()
-                .post("https://demoqa.com/Account/v1/GenerateToken")
-        .then()
-                .log().status()
-                .log().body()
-                .statusCode(200)
-                .extract().path("token");
+                String token = apiSteps
+                        .auth(newUser.userName, newUser.password)
+                        .statusCode(200)
+                        .extract().path("token");
 
-        String userId = given()
-                .contentType(JSON)
-                .log().method()
-                .log().uri()
-                .log().body()
-                .body(requestBody)
-                .when()
-                .post("https://demoqa.com/Account/v1/Login")
-                .then()
-                .log().status()
-                .log().body()
-                .statusCode(200)
-                .extract().path("userId");
-
-        given()
-                .contentType(JSON)
-                .log().method()
-                .log().uri()
-                .pathParam("userId", userId)
-                .header("Authorization", "Bearer "+token)
-        .when()
-                .delete("https://demoqa.com/Account/v1/User/{userId}")
-        .then()
-                .log().status()
-                .log().headers()
-                .log().body()
-                .statusCode(204);
+                apiSteps.deleteAccount(userID, token);
+            });
+        }
 
     }
-
-
-
 
 }
